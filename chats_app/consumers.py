@@ -2,7 +2,6 @@ import time
 from helper.consumers import BaseChatAsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from langchain_groq import ChatGroq
-from workflow_graphs.bujji.memory import Memory
 
 
 class ChatConsumer(BaseChatAsyncJsonWebsocketConsumer):
@@ -11,9 +10,8 @@ class ChatConsumer(BaseChatAsyncJsonWebsocketConsumer):
 
     async def connect(self):        
         """Establishes WebSocket connection and initializes LLM."""
-        if await self.user_connect() and await self.graph_connect():
-            self.llm = ChatGroq(model="llama-3.1-8b-instant")            
-            self.memory = Memory.get_memory(str(self.user.id), str(self.user.id), 4000, self.llm, True, False, 'human')
+        if await self.user_connect() and await self.memory_connect() and await self.pinecone_connect() and await self.graph_connect():
+            ...
             
 
     async def disconnect(self, close_code):
@@ -61,3 +59,6 @@ class ChatConsumer(BaseChatAsyncJsonWebsocketConsumer):
         
         status = await self.save_llm_response(data)
         await self.send_status("Resopnse not Saved" if not status else "Response saved successfully")
+        # self.pinecone_vector_db.add_documents(text=f"Chatbot Response: {final_response}")
+        self.memory.add_ai_message(final_response)
+        

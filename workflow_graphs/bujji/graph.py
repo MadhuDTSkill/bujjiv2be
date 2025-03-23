@@ -19,11 +19,11 @@ from langchain_core.documents import Document
 
 
 class BujjiThinkWorkflow:
-    def __init__(self, user : User, consumer : object, llm : ChatGroq, verbose=True):
+    def __init__(self, user : User, consumer : object, llm : ChatGroq, memory : Memory, verbose=True):
         self.user = user
         self.consumer = consumer
         self.llm : ChatGroq = llm
-        self.memory = Memory.get_memory(str(user.id), str(self.user.id), 4000, self.llm, True, False, 'human')
+        self.memory = memory
         self.verbose = verbose
         self.pinecone_vector_db = PineconeVectorDB(index_name=str(self.user.id))
         self.vector_db_retriever : Runnable = self.pinecone_vector_db.as_retriever()
@@ -43,7 +43,7 @@ class BujjiThinkWorkflow:
 
     
     async def _get_history(self):
-        return self.memory.messages
+        return self.memory._cached_messages
       
             
     async def _get_messages(self, new_message : str):
@@ -63,7 +63,7 @@ class BujjiThinkWorkflow:
         
         result : list[Document] = self.vector_db_retriever.invoke({"query": query})
         return "\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(result)])
-
+    
 
     async def _build_workflow(self):
         builder = StateGraph(WorkFlowState)
@@ -176,28 +176,21 @@ class BujjiThinkWorkflow:
             "response": final_response,
             "tool_responses": tool_messages,
         }
-        self.pinecone_vector_db.add_documents(text=f"Chatbot Response: {final_response}")
         
         return {"final_response": final_response}
     
     
 
     async def ainvoke(self, user_query: str, selected_mode: str = "Casual") -> str:
-        self.memory.add_user_message(user_query)
         initial_state = {
             "user_query": user_query, 
             "selected_mode": selected_mode,
             "_consumer" : self.consumer,
         }
-        start_time = time.time()
 
         await self._verbose_print(f"Running with user query: {user_query} and selected mode: {selected_mode}", initial_state)
         final_state = await self.workflow.ainvoke(initial_state)
 
-        end_time = time.time()
-        time_taken = round(end_time - start_time, 2)
-        # final_state["final_response"]["time_taken"] = time_taken
-        # self.memory.add_ai_message(final_state["final_response"]["response"])
         return final_state["final_response"]
    
     
