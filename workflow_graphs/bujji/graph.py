@@ -1,6 +1,5 @@
-import time
-import groq
 from typing import List
+from channels.db import database_sync_to_async
 from langgraph.graph import StateGraph, START, END
 from typing import Annotated
 from langchain_core.runnables import Runnable
@@ -15,8 +14,6 @@ from .memory import Memory
 from .vector_db import PineconeVectorDB
 from langchain_core.tools import tool
 from langchain_core.documents import Document
-
-
 
 class BujjiThinkWorkflow:
     def __init__(self, user : User, consumer : object, llm : ChatGroq, memory : Memory, verbose=True):
@@ -43,7 +40,7 @@ class BujjiThinkWorkflow:
 
     
     async def _get_history(self):
-        return self.memory._cached_messages
+        return self.memory.messages
       
             
     async def _get_messages(self, new_message : str):
@@ -103,7 +100,9 @@ class BujjiThinkWorkflow:
             Tools Available: {[tool.name for tool in self.tools]}
         """
 
+        print("Before LLM")
         response = await self.tool_llm.ainvoke(await self._get_messages(execution_prompt))
+        print("After LLM")
         
         await self._verbose_print(f"Tool Call Handler Response: {response}", state)
 
@@ -151,14 +150,22 @@ class BujjiThinkWorkflow:
         }
 
 
+    @database_sync_to_async
+    def test(self, messages):
+        return self.llm.stream(
+            messages
+        )
+
     async def bujji(self, state: WorkFlowState) -> dict:
         await self._verbose_print("Loading ..", state)
         await self._yield_status("🔍 Loading...", state)
         
         user_query = state["user_query"]
-        ai_message = self.llm.stream(
+        print("Before LLM2")
+        ai_message = await self.test(
             await self._get_messages(user_query)
         )
+        print("After LLM2")
         return {
             "messages" : [ai_message]
         }        
@@ -210,4 +217,4 @@ class BujjiThinkWorkflow:
         # await graph.get_flow_image()
         return graph
 
-        
+

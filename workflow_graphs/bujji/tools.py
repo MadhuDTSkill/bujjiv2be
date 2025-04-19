@@ -4,7 +4,11 @@ from langchain_core.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.document_loaders import UnstructuredURLLoader
 from duckduckgo_search.exceptions import RatelimitException
+from langchain_community.utilities import WikipediaAPIWrapper
+from langchain_community.tools import WikipediaQueryRun
 
+api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=2000)
+wiki = WikipediaQueryRun(api_wrapper=api_wrapper)
 
 @tool("DuckDuckGo")
 def duckduckgo_search_tool(query: Annotated[str, "The search term to find information from DuckDuckGo."]) -> str:
@@ -64,3 +68,10 @@ def calculator_tool(expression: Annotated[str, "A string containing a mathematic
         return f"Error: {str(e)}"
 
 
+@tool("Wikipedia")
+def wikipedia_search_tool(query: Annotated[str, "Search query for Wikipedia"]) -> str:
+    """
+    Searches Wikipedia and returns the result.
+    """
+    return wiki.invoke(input=query)
+    

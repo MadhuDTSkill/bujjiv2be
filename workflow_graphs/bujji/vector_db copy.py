@@ -1,9 +1,0 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# Load text data
-text = """I am Madhu Bagamma Gari, a Python Full Stack Developer with over a year of experience in building scalable and efficient web applications. I have expertise in Python, Django, Django Rest Framework, ReactJS, and databases like MySQL, PostgreSQL, and MongoDB. I completed my B.Sc. in Computer Science in December 2021 with a 7.5 CGPA and gained my skills through both formal education at Naresh IT, Hyderabad, and self-learning via online resources. Currently, I am working at TechFnatic Information Technology & Services, Bangalore, contributing to projects like Project Management Software (for Ux9 ERP), POS 2.0 (CRM & Vendor Integration), Customer Management System, and the Ux9 Official Website & Admin Panel. Previously, I interned as a Django Backend Developer at Simmi Foundation Organization from October 2022 to January 2023, where I worked on their official website. I am also passionate about AI and have built personal projects like TravelMates (a platform for solo travelers) and The Pluto (an AI-powered mock interview system). My skill set includes backend development with Django, frontend with ReactJS (Bootstrap & Tailwind CSS), data handling with Pandas & NumPy, web scraping with BeautifulSoup, and deployment using AWS, Heroku, PythonAnywhere, Render, and Netlify. I also have intermediate knowledge of Machine Learning and Deep Learning and have worked with pretrained models on websites and GitHub. I am always open to new opportunities, collaborations, and innovative projects. Feel free to connect with me via email (bagammagarimadhu@gmail.com), phone (+91 9948377187), GitHub (MadhuSuniL), or LinkedIn"""
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
-texts = text_splitter.create_documents([text])
-
-print(texts)

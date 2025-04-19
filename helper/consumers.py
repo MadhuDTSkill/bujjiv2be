@@ -33,7 +33,7 @@ class BaseChatAsyncJsonWebsocketConsumer(AsyncJsonWebsocketConsumer):
                     
     async def memory_connect(self):
         try :
-            llm_instance = ChatGroq(model="llama-3.1-8b-instant")
+            llm_instance = ChatGroq(model="llama-3.3-70b-versatile")
             self.memory : Memory = Memory.get_memory(str(self.user.id), str(self.user.id), 4000, llm_instance, True, False, 'human')
             return True
         except Exception as e:
@@ -50,7 +50,7 @@ class BaseChatAsyncJsonWebsocketConsumer(AsyncJsonWebsocketConsumer):
         
     async def graph_connect(self):
         try :
-            llm_instance = ChatGroq(model="llama-3.1-8b-instant", streaming=True)
+            llm_instance = ChatGroq(model="llama-3.3-70b-versatile")
             self.graph = await BujjiThinkWorkflow.init_graph(
                 user = self.user,
                 consumer = self,

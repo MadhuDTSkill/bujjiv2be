@@ -12,8 +12,6 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
-    "daphne",
-    
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -62,7 +60,8 @@ TEMPLATES = [
     },
 ]
 
-ASGI_APPLICATION = 'config.asgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
+# ASGI_APPLICATION = 'config.asgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -132,3 +131,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MOUNT_DJANGO_APP = True
 AUTH_USER_MODEL = 'auth_app.User'
+
+
+
