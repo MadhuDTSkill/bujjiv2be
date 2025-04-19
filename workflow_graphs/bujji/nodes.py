@@ -18,6 +18,18 @@ def green_log(message: str):
     logging.info(f"{green}{message}{reset}")
 
 
+def init_node(state: WorkFlowState):
+    _verbose = state['_verbose']
+    if _verbose:
+        green_log("🚀 Starting workflow")
+    user_query = HumanMessage(content=state['user_query'])
+    
+    return {
+        'messages' : [user_query],
+        'new_messages' : [user_query],
+    }
+    
+
 def load_tools(state : WorkFlowState):
     _verbose = state['_verbose']
     if _verbose:
@@ -56,13 +68,10 @@ def load_memory(state: WorkFlowState):
     pre_tools = state['pre_tools']
     memory : Memory = Memory.get_memory(conversation_id, user_id, 7000, model, True, False, 'human')
     system_prompt = SystemMessage(content=SYSTEM_PROMPT.format(response_mode = response_mode, pre_tools = pre_tools))
-    user_query = HumanMessage(content=state['user_query'])
     
     memory_messages = [system_prompt, *memory.messages]
     return {
         'memory' : memory,
-        'messages' : [user_query],
-        'new_messages' : [user_query],
         'memory_messages' : memory_messages
     }
     

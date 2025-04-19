@@ -30,11 +30,11 @@ s = {
     }
     
 
-for chunk in graph.stream(s):
-    for node, data in chunk.items():
-        print("="*100)
-        print(f"Node: {node}")
-        messages = data.get('messages', [])
-        if len(messages) > 0:
-            print(messages[-1].content)    
+# for chunk in graph.stream(s):
+#     for node, data in chunk.items():
+#         print("="*100)
+#         print(f"Node: {node}")
+#         messages = data.get('messages', [])
+#         if len(messages) > 0:
+#             print(messages[-1].content)    
 
