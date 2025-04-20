@@ -32,8 +32,8 @@ workflow.add_conditional_edges('call_model', tools_condition, {'tools' : 'tool_n
 
 graph = workflow.compile()
 
-# Visualize your graph
-graph_png = graph.get_graph(xray=True).draw_mermaid_png()
-image_file = "WorkFlow Graph.png"
-with open(image_file, "wb") as file:
-    file.write(graph_png)
+# # Visualize your graph
+# graph_png = graph.get_graph(xray=True).draw_mermaid_png()
+# image_file = "WorkFlow Graph.png"
+# with open(image_file, "wb") as file:
+#     file.write(graph_png)

@@ -1,3 +1,4 @@
+import uuid
 import logging
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
@@ -69,6 +70,9 @@ def load_memory(state: WorkFlowState):
     memory : Memory = Memory.get_memory(conversation_id, user_id, 7000, model, True, False, 'human')
     system_prompt = SystemMessage(content=SYSTEM_PROMPT.format(response_mode = response_mode, pre_tools = pre_tools))
     
+    if _verbose:
+        green_log("🧠 Memory loaded")
+    
     memory_messages = [system_prompt, *memory.messages]
     return {
         'memory' : memory,
@@ -85,7 +89,8 @@ def call_self_discussion(state: WorkFlowState):
     model = state['model']
     self_discussion_prompt = SELF_DISCUSSION_PROMPT.format(user_query = user_message)
     messages = [user_message, HumanMessage(content=self_discussion_prompt)]    
-    response : AIMessage = model.stream(messages)
+    response : AIMessage = model.invoke(messages)
+    response : ToolMessage = ToolMessage(content=response.content, tool_name='self_discussion', tool_call_id= str(uuid.uuid4()))
     
     return {
         'messages' : [response],
@@ -102,14 +107,14 @@ def call_model(state: WorkFlowState):
     messages = state['messages']
     memory_messages = state['memory_messages']
     messages = [*memory_messages, *messages]
-    response : AIMessage = model.stream(messages)
+    response : AIMessage = model.invoke(messages)
     return {
         'messages' : [response],
         'new_messages' : [response]
     }
     
 
-def tool_node(self, state: WorkFlowState) -> dict:
+def tool_node(state: WorkFlowState) -> dict:
     _verbose = state['_verbose']
     if _verbose:
         green_log("🔧 Calling tool node")
@@ -128,7 +133,7 @@ def tool_node(self, state: WorkFlowState) -> dict:
         retries = 2
         for attempt in range(1, retries + 1):
             try:
-                observation = tool(**tool_call["args"])  
+                observation = tool.run(tool_input=tool_call["args"], verbose=False)  
                 tool_messages.append(ToolMessage(
                     content=observation,
                     name=tool.name,
