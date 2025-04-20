@@ -71,6 +71,8 @@ class LLMResponseSSEView(APIView):
         def event_stream():
             self_discussion = False
             tool_calling = False
+            tool_index = 0
+            
             
             # yield status that create new conversation with new conversation id
             try:
@@ -82,13 +84,16 @@ class LLMResponseSSEView(APIView):
             
                 for message, message_data in graph.stream(s, stream_mode='messages'):
                     message : BaseMessage | AIMessage = message
+                    # message.pretty_print()
                     node = message_data.get('langgraph_node')
                     content = message.content or ""
-                    response_metadata = message.response_metadata.update(message.usage_metadata) if hasattr(message, 'usage_metadata') and message.usage_metadata else message.response_metadata
+                    response_metadata = message.response_metadata or {}
+                    if hasattr(message, 'usage_metadata') and message.usage_metadata:
+                        response_metadata.update(message.usage_metadata)
                     tool_calls = message.tool_calls if hasattr(message, 'tool_calls') else []
                     tool_call_names = [tool_call['name'] for tool_call in tool_calls]
                     
-                    print(f"Tool call names: {tool_call_names}", f"Node: {node}", f"Response metadata: {message.response_metadata}", f"Usage Metadata: {message.usage_metadata if hasattr(message, 'usage_metadata') else {}}")
+                    # print(f"Tool call names: {tool_call_names}", f"Node: {node}", f"Response metadata: {message.response_metadata}", f"Usage Metadata: {message.usage_metadata if hasattr(message, 'usage_metadata') else {}}")
 
                     if node == 'init_node':
                         p = 'conversation/message/0'
@@ -109,7 +114,7 @@ class LLMResponseSSEView(APIView):
                             messages[1].update_self_dicussion_contexts(content)
                             yield f"event: delta\ndata: {json.dumps({'p' : p, 'o' : o, 'v': v})}\n\n"
 
-                    elif node == 'call_model':
+                    elif node == 'call_model':                        
                         if self_discussion:
                             self_discussion = False
                             messages[1].save()
@@ -137,8 +142,18 @@ class LLMResponseSSEView(APIView):
                             messages[1].save()
                                                
                     elif node == 'tool_node':
-                        tool_calling = True
-                        messages[1] = self.create_assistant_message(conversation_id, content='')
+                        if not tool_calling:
+                            tool_calling = True
+                            tool_index = 0
+                            messages[1] = self.create_assistant_message(conversation_id, content='')
+
+                        if content:
+                            p = f'conversation/message/0/sources/retrived_contexts/{tool_index}'
+                            o = "add"
+                            v = {'name' : message.name, 'content' : message.content}
+                            messages[1].update_retrived_contexts(v)
+                            yield f"event: tool_call_response\ndata: {json.dumps({'p' : p, 'o' : o, 'v' : v})}\n\n"
+                            tool_index += 1
                         
                 messages[1].update_status('complete', metadata=response_metadata)
                 messages[1].save()

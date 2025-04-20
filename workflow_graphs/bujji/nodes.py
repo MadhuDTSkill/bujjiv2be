@@ -133,7 +133,7 @@ def tool_node(state: WorkFlowState) -> dict:
         retries = 2
         for attempt in range(1, retries + 1):
             try:
-                observation = tool.run(tool_input=tool_call["args"], verbose=False)  
+                observation = tool.invoke(input=tool_call["args"], verbose=False)  
                 tool_messages.append(ToolMessage(
                     content=observation,
                     name=tool.name,

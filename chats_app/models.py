@@ -45,7 +45,7 @@ class Message(UUIDPrimaryKey, TimeLine):
     author = models.JSONField(default=str_default_dict)  # role, name, metadata
     content = models.JSONField(default=str_default_dict)  # content_type, content
     status = models.CharField(max_length=50, default="pending")  # pending, in_progress, completed, failed
-    sources = models.JSONField(default=str_default_dict, blank=True)  # retrived_contexts, self_discussion_context, tool_responses
+    sources = models.JSONField(default=str_default_dict, blank=True)  # retrived_contexts, self_discussion_context
     metadata = models.JSONField(default=str_default_dict, blank=True)  # finish_reason, finished_duration_sec, model_slug, token_usage
 
     def update_status(self, status, metadata=None):
@@ -59,6 +59,9 @@ class Message(UUIDPrimaryKey, TimeLine):
     
     def update_content(self, content):
         self.content['content'] += content
+        
+    def update_retrived_contexts(self, context : dict[str:str]):
+        self.sources['retrived_contexts'] = context
 
     objects : MessageManager = MessageManager()
 
