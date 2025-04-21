@@ -10,13 +10,10 @@ from django.views.decorators.csrf import csrf_exempt
 from . import models
 from langchain_core.messages import BaseMessage, AIMessage
 
-class LLMResponseListView(ListAPIView):
+
+
     
-    queryset = LLMResponse.objects.all()
-    serializer_class = LLMResponseSerializer
     
-    def get_queryset(self):
-        return super().get_queryset().filter(user=self.request.user)
     
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -32,7 +29,6 @@ class LLMResponseSSEView(APIView):
     def post(self, request, *args, **kwargs):
         user_id = request.user.id
         body = request.data
-        with_new_conversation = False
 
 
         conversation_id = body.get("conversation_id")
@@ -41,12 +37,9 @@ class LLMResponseSSEView(APIView):
         response_mode = body.get("response_mode", "Scientific")
         self_discussion_flag = body.get("self_discussion", False)
         
-        models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id})
 
-        if not conversation_id:
-            conversation = models.Conversation.objects.create(title="New chat", user_id=user_id)
-            conversation_id = conversation.id
-            with_new_conversation = True
+        conversation, with_new_conversation = models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id})
+        conversation_id = conversation.id
             
         if not query:
             return StreamingHttpResponse(json.dumps({'error': 'Please provide a query'}), content_type="application/json")

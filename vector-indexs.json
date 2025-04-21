@@ -1,0 +1,65 @@
+{
+    "gene-development": [
+      {
+        "id": "aaee5710-9496-4ae2-b68a-c4a03f3cc177",
+        "page_content": "The Great Attractor is a gravitational anomaly in intergalactic space that reveals the presence of a huge concentration of mass, pulling galaxies, including our own Milky Way, toward it.",
+        "metadata": {
+          "user_id": "dabdcf5e-2464-4c4f-ae7c-b87d6f857184",
+          "conversation_id": "f3d05813-3098-4f9a-b3c6-1fbc6b360de4",
+          "mode": "Public"
+        },
+        "vector": [-0.0023, 0.0145, -0.0098, 0.0014, 0.0031, -0.0086, 0.0123, -0.0045, 0.0077, -0.0019]
+      },
+      {
+        "id": "9f9bdb43-1d73-46e1-8cb5-0d7c063ce5c9",
+        "page_content": "Despite its immense influence, the exact nature and mass of the Great Attractor remain mysterious due to its location behind the Zone of Avoidance — a region blocked by the Milky Way's disk.",
+        "metadata": {
+          "user_id": "9b688d18-7039-4c23-a546-96c3d346fe1a",
+          "conversation_id": "2256e505-e28d-4390-8f3d-070d57c889fa",
+          "mode": "Public"
+        },
+        "vector": [0.0051, -0.0124, 0.0037, -0.0048, 0.0102, -0.0063, 0.0091, 0.0022, -0.0011, 0.0068]
+      },
+      {
+        "id": "682c4b76-96db-4ce1-bd9d-8aa2f2315fcf",
+        "page_content": "Black holes represent the ultimate collapse of matter into an infinitely dense point. The curvature of space-time becomes infinite at the singularity, where classical physics breaks down.",
+        "metadata": {
+          "user_id": "843ec65c-2e9a-4c13-b31e-622e2039e5e4",
+          "conversation_id": "3754cd31-3e79-4cb3-9a4c-68516d3d96c2",
+          "mode": "Private"
+        },
+        "vector": [-0.0042, 0.0067, -0.0074, 0.0095, -0.0029, 0.0013, 0.0084, -0.0037, 0.0021, 0.0059]
+      },
+      {
+        "id": "7920e7a6-463e-41e0-8de2-cb5391875cb1",
+        "page_content": "Quantum effects around black holes suggest that information may not be entirely lost. This unresolved paradox has sparked debates in physics for decades.",
+        "metadata": {
+          "user_id": "6e5029e2-49fd-4cf4-bfd4-47ce0d7331cd",
+          "conversation_id": "20c84e5d-ef78-42b3-999c-9f3a0c1181f8",
+          "mode": "Private"
+        },
+        "vector": [0.0024, -0.0016, 0.0048, 0.0069, -0.0031, 0.0075, -0.0062, 0.0017, -0.0025, 0.0041]
+      },
+      {
+        "id": "5adad34d-f4c2-4b36-bb8d-57dc1b963f45",
+        "page_content": "The Great Attractor lies roughly 250 million light-years away in the direction of the Centaurus and Hydra constellations. Its influence suggests a massive hidden structure.",
+        "metadata": {
+          "user_id": "b1f625ef-6bcb-4cb7-a5a3-31f3522bc92a",
+          "conversation_id": "ffae4526-9255-4603-9e82-13923e8879ff",
+          "mode": "Public"
+        },
+        "vector": [-0.0083, 0.0032, 0.0011, -0.0079, 0.0046, -0.0067, 0.0064, -0.0032, 0.0026, 0.0008]
+      },
+      {
+        "id": "90cc420e-cba6-4d88-8f1b-207ce3cbbdb6",
+        "page_content": "Some theories suggest that the matter within the Great Attractor could be part of an even larger structure known as the Laniakea Supercluster, redefining our understanding of the cosmic web.",
+        "metadata": {
+          "user_id": "a0aa3a67-37dc-44a9-b0f3-dc6e0eab6f1e",
+          "conversation_id": "bdf0182d-6e45-4a46-897e-df6a9c44b9cb",
+          "mode": "Public"
+        },
+        "vector": [0.0097, -0.0024, 0.0061, -0.0019, 0.0038, 0.0015, -0.0052, 0.0043, -0.0076, 0.0020]
+      }
+    ]
+  }
+  

@@ -11,7 +11,7 @@ from .schemas import WorkFlowState
 from .tools import calculator_tool, web_url_tool, duckduckgo_search_tool
 from auth_app.models import User
 from .memory import Memory
-from .vector_db import PineconeVectorDB
+from .vector_dbs import PineconeVectorDB
 from langchain_core.tools import tool
 from langchain_core.documents import Document
 
