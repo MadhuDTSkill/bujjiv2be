@@ -40,6 +40,8 @@ class LLMResponseSSEView(APIView):
         model_name = body.get("model_name", "gemma2-9b-it")
         response_mode = body.get("response_mode", "Scientific")
         self_discussion_flag = body.get("self_discussion", False)
+        
+        models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id})
 
         if not conversation_id:
             conversation = models.Conversation.objects.create(title="New chat", user_id=user_id)
