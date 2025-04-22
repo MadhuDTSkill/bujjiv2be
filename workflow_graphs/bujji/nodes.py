@@ -119,7 +119,7 @@ def tool_node(state: WorkFlowState) -> dict:
     if _verbose:
         green_log("🔧 Calling tool node")
     
-    last_message = state['messages'][-1]
+    last_message : AIMessage = state['messages'][-1]
     tools = state['tools']
 
     tools_by_name = {tool.name: tool for tool in tools}
@@ -133,7 +133,7 @@ def tool_node(state: WorkFlowState) -> dict:
         retries = 2
         for attempt in range(1, retries + 1):
             try:
-                observation = tool.invoke(input=tool_call["args"], verbose=False)  
+                observation = tool.invoke(input={**tool_call["args"], "state" : state}, verbose=False)  
                 tool_messages.append(ToolMessage(
                     content=observation,
                     name=tool.name,

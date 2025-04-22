@@ -12,6 +12,7 @@ from . import models
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.documents import Document
 from workflow_graphs.bujji.loaders import DynamicLoader
+from workflow_graphs.bujji.vector_dbs import PineconeVectorDB
 
 class FileUploadAndProcessView(APIView):    
     def post(self, request, *args, **kwargs):
@@ -55,7 +56,7 @@ class FileUploadAndProcessView(APIView):
 
             # Step 3: Content Extraction
             try:
-                dynamic_loader = DynamicLoader(input_source=local_path, metadata={"user_id" : str(request.user.id), "file_id" : str(file_instance.id), "file_name" : file_instance.name})
+                dynamic_loader = DynamicLoader(input_source=local_path, metadata={"user_id" : str(request.user.id), "source_id" : str(file_instance.id), "source" : file_instance.name})
                 docs = dynamic_loader.load()
                 yield f"event: file_progress\ndata: {json.dumps({'step': 3, 'total': total_steps, 'status': 'Content extracted'})}\n\n"
             except Exception as e:
@@ -100,17 +101,31 @@ class LLMResponseSSEView(APIView):
 
         conversation_id = body.get("conversation_id")
         query = body.get("query", "Hello")
+        attachments = body.get("attachments", [])
         model_name = body.get("model_name", "gemma2-9b-it")
         response_mode = body.get("response_mode", "Scientific")
         self_discussion_flag = body.get("self_discussion", False)
+        conversation_metadata = body.get("conversation_metadata", {})
         
-
-        conversation, with_new_conversation = models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id})
-        conversation_id = conversation.id
-            
         if not query:
             return StreamingHttpResponse(json.dumps({'error': 'Please provide a query'}), content_type="application/json")
+
+        # Get or Create the conversation
+        conversation, with_new_conversation = models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id, **conversation_metadata})
+        conversation_id = conversation.id
+            
+        # Get the all doc chunks for the conversation
+        doc_chunks = []
+        for attachment in attachments:
+            file_instance = models.File.objects.get(id=attachment['id'])
+            doc_chunks.extend(file_instance.get_documents(metadata={"conversation_id": str(conversation_id)}))
         
+        
+        # Init Vector DB and add the doc chunks
+        vector_db = PineconeVectorDB(index_name="sample-index")
+        if len(doc_chunks):
+            data = vector_db.add_documents(doc_chunks)   
+
         messages : list[models.Message] = [
             self.create_human_message(conversation_id, content=query),
             self.create_assistant_message(conversation_id, content='')
@@ -119,6 +134,7 @@ class LLMResponseSSEView(APIView):
         s = {
             'user_id': str(user_id),
             'conversation_id': str(conversation_id),
+            'vector_db' : vector_db,
             'user_query': query,
             'messages': [],
             'new_messages': [],
@@ -155,8 +171,6 @@ class LLMResponseSSEView(APIView):
                     tool_calls = message.tool_calls if hasattr(message, 'tool_calls') else []
                     tool_call_names = [tool_call['name'] for tool_call in tool_calls]
                     
-                    # print(f"Tool call names: {tool_call_names}", f"Node: {node}", f"Response metadata: {message.response_metadata}", f"Usage Metadata: {message.usage_metadata if hasattr(message, 'usage_metadata') else {}}")
-
                     if node == 'init_node':
                         p = 'conversation/message/0'
                         o = "add"

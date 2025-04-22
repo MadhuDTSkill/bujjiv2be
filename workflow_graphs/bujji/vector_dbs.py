@@ -1,6 +1,7 @@
 import os
 import time
 import weaviate
+from abc import ABC, abstractmethod
 from uuid import uuid4
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
@@ -13,8 +14,26 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_cohere import CohereEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+class BaseVectorDB(ABC):
+    @abstractmethod
+    def add_documents(self, documents: list[Document]) -> None:
+        pass
+    
+    @abstractmethod
+    def query(self, query: str, k: int = 5) -> str:
+        ...
+        
+    @abstractmethod
+    def delete_index(self):
+        ...
+    
+    @abstractmethod
+    def delete_vectors(self):
+        ...
 
-class PineconeVectorDB:
+
+
+class PineconeVectorDB(BaseVectorDB):
     def __init__(self, index_name: str):
         self.client = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
         self.index_name = index_name
@@ -25,7 +44,7 @@ class PineconeVectorDB:
         if index_name not in existing_indexes:
             self.client.create_index(
                 name=index_name,
-                dimension=768,
+                dimension=1024,
                 metric="cosine",
                 spec=ServerlessSpec(cloud="aws", region="us-east-1"),
             )
@@ -34,21 +53,28 @@ class PineconeVectorDB:
                 
         self.index = self.client.Index(index_name)
         self.embeddings = CohereEmbeddings(model="embed-english-v3.0")
-        self.store = PineconeVectorStore(index=self.index, embedding=self.embeddings)
+        self.store : PineconeVectorStore = PineconeVectorStore(index=self.index, embedding=self.embeddings)
         
             
     def add_documents(self, documents : list[Document]) -> None:
         uuids = [str(uuid4()) for _ in range(len(documents))]
-        self.store.add_documents(documents=documents, ids=uuids)
+        return self.store.add_documents(documents=documents, ids=uuids)
         
         
     def query(self, query: str, k: int = 5) -> list[Document]:
         results = self.store.similarity_search(query, k=k)
         response = [result.page_content for result in results]
         return "\n\n".join(response)
+    
+    
+    def delete_index(self):
+        self.client.delete_index(index_name=self.index_name)
+        
+    def delete_vectors(self, filter: dict = None) -> None:
+        self.store.delete(filter=filter)
             
         
-class QdrantVectorDB:
+class QdrantVectorDB(BaseVectorDB):
     def __init__(self, collection_name: str):
         self.client =  QdrantClient(url=os.environ.get("QDRANT_HOST"), api_key = os.environ.get("QDRANT_API_KEY"))
         self.collection_name = collection_name
@@ -72,6 +98,12 @@ class QdrantVectorDB:
     def query(self, query: str, k: int = 5) -> str:
         results = self.store.similarity_search(query, k=k)
         return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])
+    
+    def delete_index(self):
+        self.client.delete_collection(collection_name=self.collection_name)
+        
+    def delete_vectors(self, filter: dict = None) -> None:
+        self.store.delete(filter=filter)
       
 
 class WeaviateVectorDB:
@@ -103,7 +135,7 @@ class ZillizVectorDB:
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
                 
         self.embeddings = CohereEmbeddings(model="embed-english-v3.0")
-        self.store = Zilliz(embedding_function=self.embeddings, connection_args=self.connection_args, collection_name = self.collection_name)    
+        self.store = Zilliz(embedding_function=self.embeddings, connection_args=self.connection_args, collection_name = self.collection_name)
     
     def add_documents(self, documents : list[Document]) -> None:
         uuids = [str(uuid4()) for _ in range(len(documents))]
@@ -112,4 +144,5 @@ class ZillizVectorDB:
         
     def query(self, query: str, k: int = 5) -> str:
         results = self.store.similarity_search(query, k=k)
-        return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])        
+        return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])       
+

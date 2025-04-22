@@ -5,7 +5,7 @@ from .models import Message, Conversation, File
 class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        exclude = ['temp_documents']
+        exclude = ['documents']
         
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:

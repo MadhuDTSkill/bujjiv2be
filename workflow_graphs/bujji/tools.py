@@ -11,7 +11,7 @@ api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=2000)
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper)
 
 @tool("DuckDuckGo")
-def duckduckgo_search_tool(query: Annotated[str, "The search term to find information from DuckDuckGo."]) -> str:
+def duckduckgo_search_tool(query: Annotated[str, "The search term to find information from DuckDuckGo."], **kwargs) -> str:
     """
     Searches the web using DuckDuckGo and returns the results.
 
@@ -26,7 +26,7 @@ def duckduckgo_search_tool(query: Annotated[str, "The search term to find inform
 
 
 @tool("Web URL")
-def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."]) -> str:
+def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."], **kwargs) -> str:
     """
     Web Scrap the content from the given URL.
 
@@ -46,7 +46,7 @@ def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."]) 
 
 
 @tool("Calculator")
-def calculator_tool(expression: Annotated[str, "A string containing a mathematical expression"]) -> float:
+def calculator_tool(expression: Annotated[str, "A string containing a mathematical expression"], **kwargs) -> float:
     """
     Evaluates a basic arithmetic expression and returns the result.
         
@@ -69,7 +69,7 @@ def calculator_tool(expression: Annotated[str, "A string containing a mathematic
 
 
 @tool("Wikipedia")
-def wikipedia_search_tool(query: Annotated[str, "Search query for Wikipedia"]) -> str:
+def wikipedia_search_tool(query: Annotated[str, "Search query for Wikipedia"], **kwargs) -> str:
     """
     Searches Wikipedia and returns the result.
     """

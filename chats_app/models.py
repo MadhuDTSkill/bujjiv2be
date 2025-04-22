@@ -12,22 +12,28 @@ class File(UUIDPrimaryKey, TimeLine):
     file = models.FileField(upload_to='media/files/')
     name = models.CharField(max_length=255)    
     metadata = models.JSONField(null=True, default=str_default_dict)    
-    temp_documents = models.JSONField(default=list)   
+    documents = models.JSONField(default=list)   
     
     def add_documents(self, documents : list[Document]):
         documents = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in documents]
-        self.temp_documents.extend(documents)
+        self.documents.extend(documents)
         self.save()
         
+    def update_documents(self, documents : list[Document]):
+        documents = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in documents]
+        self.documents = documents
+        self.save()
+    
     def get_documents(self, metadata : dict = {}):
         documents = []
-        for doc in self.temp_documents:
+        for doc in self.documents:
             doc['metadata'].update(metadata)
             documents.append(Document(**doc))
-        return documents
+        self.update_documents(documents)
+        return documents    
     
     def clear_documents(self):
-        self.temp_documents = []
+        self.documents = []
         self.save()    
 
 class Conversation(UUIDPrimaryKey, TimeLine):
