@@ -1,17 +1,18 @@
 import re
-from typing import Annotated
+from typing import Annotated, Optional
 from langchain_core.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.document_loaders import UnstructuredURLLoader
 from duckduckgo_search.exceptions import RatelimitException
 from langchain_community.utilities import WikipediaAPIWrapper
 from langchain_community.tools import WikipediaQueryRun
+from .vector_dbs import BaseVectorDB
 
 api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=2000)
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper)
 
 @tool("DuckDuckGo")
-def duckduckgo_search_tool(query: Annotated[str, "The search term to find information from DuckDuckGo."], **kwargs) -> str:
+def duckduckgo_search_tool(query: Annotated[str, "The search term to find information from DuckDuckGo."], state : Annotated[dict, "This is always empty dictionary"] = {}) -> str:
     """
     Searches the web using DuckDuckGo and returns the results.
 
@@ -26,7 +27,7 @@ def duckduckgo_search_tool(query: Annotated[str, "The search term to find inform
 
 
 @tool("Web URL")
-def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."], **kwargs) -> str:
+def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."], state : Annotated[dict, "This is always empty dictionary"] = {}) -> str:
     """
     Web Scrap the content from the given URL.
 
@@ -46,7 +47,7 @@ def web_url_tool(url: Annotated[str, "A single URL to retrieve content from."], 
 
 
 @tool("Calculator")
-def calculator_tool(expression: Annotated[str, "A string containing a mathematical expression"], **kwargs) -> float:
+def calculator_tool(expression: Annotated[str, "A string containing a mathematical expression"], state : Annotated[dict, "This is always empty dictionary"] = {}) -> float:
     """
     Evaluates a basic arithmetic expression and returns the result.
         
@@ -69,9 +70,19 @@ def calculator_tool(expression: Annotated[str, "A string containing a mathematic
 
 
 @tool("Wikipedia")
-def wikipedia_search_tool(query: Annotated[str, "Search query for Wikipedia"], **kwargs) -> str:
+def wikipedia_search_tool(query: Annotated[str, "Search query for Wikipedia"], state : Annotated[dict, "This is always empty dictionary"] = {}) -> str:
     """
     Searches Wikipedia and returns the result.
     """
     return wiki.invoke(input=query)
+    
+    
+@tool("Vector DB Search")
+def vector_db_search_tool(query: Annotated[str, "Search query for vector database"], k : Annotated[int, "Represents the top k relevent chukns min 1 and max 10"], state : Annotated[dict, "This is always empty dictionary"] = {}) -> str:
+    """
+    Searches the vector database and returns the relvent chunks as result.
+    """
+    k = 10 if k > 10 else k
+    vector_db : BaseVectorDB = state['vector_db']
+    return vector_db.query(query, k)
     

@@ -5,7 +5,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Tool
 from .memory import Memory
 from .schemas import WorkFlowState
 from .prompts import SYSTEM_PROMPT, SELF_DISCUSSION_PROMPT
-from .tools import calculator_tool, web_url_tool, duckduckgo_search_tool, wikipedia_search_tool
+from .tools import calculator_tool, web_url_tool, duckduckgo_search_tool, wikipedia_search_tool, vector_db_search_tool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +36,7 @@ def load_tools(state : WorkFlowState):
     if _verbose:
         green_log("🔧 Loading tools")
 
-    tools = [calculator_tool, web_url_tool, duckduckgo_search_tool, wikipedia_search_tool]
+    tools = [calculator_tool, web_url_tool, duckduckgo_search_tool, wikipedia_search_tool, vector_db_search_tool]
     return {
         'tools' : tools
     }

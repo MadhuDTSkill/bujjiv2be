@@ -1,3 +1,5 @@
+import re
+from uuid import uuid4
 from collections import defaultdict
 from django.db import models
 from auth_app.models import User
@@ -14,28 +16,25 @@ class File(UUIDPrimaryKey, TimeLine):
     metadata = models.JSONField(null=True, default=str_default_dict)    
     documents = models.JSONField(default=list)   
     
-    def add_documents(self, documents : list[Document]):
-        documents = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in documents]
+    def add_documents(self, documents : list[Document], id_suffix : str):
+        id_suffix = ''.join(re.findall(r"[a-zA-Z]", id_suffix.lower())) + "-"
+        documents = [(id_suffix + str(uuid4()), {"page_content": doc.page_content, "metadata": doc.metadata}) for doc in documents]
         self.documents.extend(documents)
         self.save()
         
-    def update_documents(self, documents : list[Document]):
-        documents = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in documents]
+    def update_documents(self, documents : list[list[str | Document]]):
+        documents = [(id, {"page_content": doc.page_content, "metadata": doc.metadata}) for id, doc in documents]
         self.documents = documents
         self.save()
     
     def get_documents(self, metadata : dict = {}):
         documents = []
-        for doc in self.documents:
+        for id, doc in self.documents:
             doc['metadata'].update(metadata)
-            documents.append(Document(**doc))
+            documents.append((id, Document(**doc)))
         self.update_documents(documents)
         return documents    
     
-    def clear_documents(self):
-        self.documents = []
-        self.save()    
-
 class Conversation(UUIDPrimaryKey, TimeLine):
     title = models.CharField(max_length=255, default="New chat")
     
@@ -48,15 +47,14 @@ class Conversation(UUIDPrimaryKey, TimeLine):
     is_archived = models.BooleanField(default=False)
     is_starred = models.BooleanField(null=True, blank=True)
     used_at = models.DateTimeField(null=True, blank=True)
-    attachments : list = models.JSONField(default=list, blank=True)  # file_id, file_name, metadata
+    files = models.ManyToManyField(File, blank=True, related_name='conversations')
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
     cluster_id = models.CharField(max_length=255, null=True, blank=True)
     
-    def add_attachment(self, attachment : dict):
-        self.attachments.append(attachment)
+    def add_file(self, attachment : dict):
+        self.files.add(attachment)
         self.save()
-
     
     class Meta:
         ordering = ['-used_at']
@@ -70,7 +68,6 @@ class Message(UUIDPrimaryKey, TimeLine):
     status = models.CharField(max_length=50, default="pending")  # pending, in_progress, completed, failed
     sources = models.JSONField(default=str_default_dict, blank=True)  # retrived_contexts, self_discussion_context
     metadata = models.JSONField(default=str_default_dict, blank=True)  # finish_reason, finished_duration_sec, model_slug, token_usage
-    attachments : list = models.JSONField(default=list, blank=True)  # file_id, file_name, metadata
     
 
     def update_status(self, status, metadata=None):
@@ -88,10 +85,6 @@ class Message(UUIDPrimaryKey, TimeLine):
     def update_retrived_contexts(self, context : dict[str:str]):
         self.sources['retrived_contexts'] = context
         
-    def add_attachment(self, attachment : dict):
-        self.attachments.append(attachment)
-        self.save()
-
     objects : MessageManager = MessageManager()
 
     class Meta:

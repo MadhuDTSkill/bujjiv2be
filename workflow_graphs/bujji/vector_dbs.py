@@ -1,3 +1,4 @@
+import re
 import os
 import time
 import weaviate
@@ -56,22 +57,23 @@ class PineconeVectorDB(BaseVectorDB):
         self.store : PineconeVectorStore = PineconeVectorStore(index=self.index, embedding=self.embeddings)
         
             
-    def add_documents(self, documents : list[Document]) -> None:
-        uuids = [str(uuid4()) for _ in range(len(documents))]
-        return self.store.add_documents(documents=documents, ids=uuids)
+    def add_documents(self, documents : list[list[str | Document]]) -> None:
+        uuids, docs = zip(*documents)
+        return self.store.add_documents(documents=docs, ids=uuids)
         
         
     def query(self, query: str, k: int = 5) -> list[Document]:
         results = self.store.similarity_search(query, k=k)
-        response = [result.page_content for result in results]
+        response = ["Chunk " + str(id+1) + '\n' + result.page_content for id, result in enumerate(results)]
         return "\n\n".join(response)
     
     
     def delete_index(self):
         self.client.delete_index(index_name=self.index_name)
         
-    def delete_vectors(self, filter: dict = None) -> None:
-        self.store.delete(filter=filter)
+    
+    def delete_vectors(self, ids : list = []) -> None:
+        self.store.delete(ids=ids)
             
         
 class QdrantVectorDB(BaseVectorDB):
@@ -90,21 +92,49 @@ class QdrantVectorDB(BaseVectorDB):
         self.store = QdrantVectorStore(client=self.client, collection_name=self.collection_name, embedding=self.embeddings)
         
             
-    def add_documents(self, documents : list[Document]) -> None:
-        uuids = [str(uuid4()) for _ in range(len(documents))]
-        self.store.add_documents(documents=documents, ids=uuids)
+    def add_documents(self, documents : list[list[str | Document]]) -> None:
+        uuids, docs = zip(*documents)
+        return self.store.add_documents(documents=docs, ids=uuids)
         
         
     def query(self, query: str, k: int = 5) -> str:
         results = self.store.similarity_search(query, k=k)
-        return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])
+        response = ["Chunk " + str(id+1) + '\n' + result.page_content for id, result in enumerate(results)]
+        return "\n\n".join(response)
     
     def delete_index(self):
         self.client.delete_collection(collection_name=self.collection_name)
         
-    def delete_vectors(self, filter: dict = None) -> None:
-        self.store.delete(filter=filter)
+    def delete_vectors(self, ids : list = []) -> None:
+        self.store.delete(ids=ids)
       
+    
+class ZillizVectorDB(BaseVectorDB):
+    def __init__(self, collection_name: str):
+        self.collection_name = collection_name
+        self.connection_args = { 'uri': os.environ.get("ZILLIZ_CLOUD_URI"), 'token': os.environ.get("ZILLIZ_CLOUD_API_KEY") }
+        
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+                
+        self.embeddings = CohereEmbeddings(model="embed-english-v3.0")
+        self.store : Zilliz = Zilliz(embedding_function=self.embeddings, connection_args=self.connection_args, collection_name = self.collection_name)
+    
+    def add_documents(self, documents : list[list[str | Document]]) -> None:
+        uuids, docs = zip(*documents)
+        return self.store.add_documents(documents=docs, ids=uuids)
+        
+        
+    def query(self, query: str, k: int = 5) -> str:
+        results = self.store.similarity_search(query, k=k)
+        response = ["Chunk " + str(id+1) + '\n' + result.page_content for id, result in enumerate(results)]
+        return "\n\n".join(response)
+    
+    def delete_index(self):
+        ...
+        
+    def delete_vectors(self, ids : list = []) -> None:
+        self.store.delete(ids = ids)
+
 
 class WeaviateVectorDB:
     def __init__(self, index_name: str):
@@ -116,33 +146,12 @@ class WeaviateVectorDB:
         self.store = WeaviateVectorStore(index_name=index_name, client=self.client, embedding=self.embeddings, text_key='content')
             
     
-    def add_documents(self, documents : list[Document]) -> None:
-        
-        uuids = [str(uuid4()) for _ in range(len(documents))]
-        self.store.add_documents(documents=documents, ids=uuids)
-        
-        
-    def query(self, query: str, k: int = 5) -> str:
-        results = self.store.similarity_search(query, k=k)
-        return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])
-    
-    
-class ZillizVectorDB:
-    def __init__(self, collection_name: str):
-        self.collection_name = collection_name
-        self.connection_args = { 'uri': os.environ.get("ZILLIZ_CLOUD_URI"), 'token': os.environ.get("ZILLIZ_CLOUD_API_KEY") }
-        
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-                
-        self.embeddings = CohereEmbeddings(model="embed-english-v3.0")
-        self.store = Zilliz(embedding_function=self.embeddings, connection_args=self.connection_args, collection_name = self.collection_name)
-    
-    def add_documents(self, documents : list[Document]) -> None:
-        uuids = [str(uuid4()) for _ in range(len(documents))]
-        self.store.add_documents(documents=documents, ids=uuids)
+    def add_documents(self, documents : list[list[str | Document]]) -> None:
+        uuids, docs = zip(*documents)
+        return self.store.add_documents(documents=docs, ids=uuids)
         
         
     def query(self, query: str, k: int = 5) -> str:
         results = self.store.similarity_search(query, k=k)
-        return "\n\n".join([f"{i+1}. {doc.page_content}" for i, doc in enumerate(results)])       
-
+        response = ["Chunk " + str(id+1) + '\n' + result.page_content for id, result in enumerate(results)]
+        return "\n\n".join(response)

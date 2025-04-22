@@ -73,7 +73,7 @@ class FileUploadAndProcessView(APIView):
 
             # Step 5: Save Chunks
             try:
-                file_instance.add_documents(docs)
+                file_instance.add_documents(documents=docs, id_suffix = request.user.email.split("@")[0])
                 serializer = FileSerializer(file_instance, context={'request': request})
                 yield f"event: file_progress\ndata: {json.dumps({'step': 5, 'total': total_steps, 'status': 'Chunks saved', 'file': serializer.data})}\n\n"
             except Exception as e:
@@ -113,23 +113,28 @@ class LLMResponseSSEView(APIView):
         # Get or Create the conversation
         conversation, with_new_conversation = models.Conversation.objects.get_or_create(id=conversation_id, defaults={'user_id': user_id, **conversation_metadata})
         conversation_id = conversation.id
+        vector_db = PineconeVectorDB(index_name="sample-index")
             
         # Get the all doc chunks for the conversation
-        doc_chunks = []
         for attachment in attachments:
             file_instance = models.File.objects.get(id=attachment['id'])
-            doc_chunks.extend(file_instance.get_documents(metadata={"conversation_id": str(conversation_id)}))
-        
-        
-        # Init Vector DB and add the doc chunks
-        vector_db = PineconeVectorDB(index_name="sample-index")
-        if len(doc_chunks):
-            data = vector_db.add_documents(doc_chunks)   
+            docs = file_instance.get_documents(metadata={"conversation_id": str(conversation_id)})
+            if len(docs):
+                vector_db.add_documents(docs)   
+                conversation.add_file(file_instance)
 
+            
         messages : list[models.Message] = [
-            self.create_human_message(conversation_id, content=query),
+            self.create_human_message(conversation_id, content=query, content_type='text' if len(attachments) == 0 else 'maltilingual'),
             self.create_assistant_message(conversation_id, content='')
         ]
+        
+        if len(attachments):
+            messages[0].content.update({
+                "content_type": "maltilingual",
+                "attachments": attachments
+            })
+            messages[0].save()
 
         s = {
             'user_id': str(user_id),
@@ -188,7 +193,7 @@ class LLMResponseSSEView(APIView):
                             o = "append"
                             v = content
                             messages[1].update_self_dicussion_contexts(content)
-                            yield f"event: file_progress delta\ndata: {json.dumps({'p' : p, 'o' : o, 'v': v})}\n\n"
+                            yield f"event: delta\ndata: {json.dumps({'p' : p, 'o' : o, 'v': v})}\n\n"
 
                     elif node == 'call_model':                        
                         if self_discussion:
