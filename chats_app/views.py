@@ -1,20 +1,87 @@
+import os
 import json
+import tempfile
 from django.http import StreamingHttpResponse
-from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from .models import LLMResponse
-from .serializers import LLMResponseSerializer, ConversationSerializer, MessageSerializer
+from rest_framework.response import Response
+from .serializers import ConversationSerializer, MessageSerializer, FileSerializer
 from workflow_graphs.bujji.workflow import graph
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from . import models
 from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.documents import Document
+from workflow_graphs.bujji.loaders import DynamicLoader
 
+class FileUploadAndProcessView(APIView):    
+    def post(self, request, *args, **kwargs):
+        uploaded_file = request.FILES.get('file')
+        
+        def event_stream():
+            total_steps = 5
 
+            if not uploaded_file:
+                yield f"event: file_progress\ndata: {json.dumps({'error': 'Please provide a file'})}\n\n"
+                return
 
-    
-    
-    
+            # Step 1: File Upload
+            try:
+                file_instance = models.File.objects.create(
+                    file=uploaded_file,
+                    name=uploaded_file.name,
+                    metadata={
+                        'content_type': uploaded_file.content_type,
+                        'size': uploaded_file.size
+                    }
+                )
+                yield f"event: file_progress\ndata: {json.dumps({'step': 1, 'total': total_steps, 'status': 'File uploaded'})}\n\n"
+            except Exception as e:
+                yield f"event: file_progress\ndata: {json.dumps({'step': 1, 'error': str(e)})}\n\n"
+                return
+
+            # Step 2: Create Temp Local File
+            try:
+                original_filename = uploaded_file.name  # e.g., "report.pdf"
+                _, ext = os.path.splitext(original_filename)  # ".pdf"
+                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                    for chunk in file_instance.file.chunks():
+                        tmp.write(chunk)
+                    tmp.flush()
+                    local_path = tmp.name
+                yield f"event: file_progress\ndata: {json.dumps({'step': 2, 'total': total_steps, 'status': 'Temp file created'})}\n\n"
+            except Exception as e:
+                yield f"event: file_progress\ndata: {json.dumps({'step': 2, 'error': str(e)})}\n\n"
+                return
+
+            # Step 3: Content Extraction
+            try:
+                dynamic_loader = DynamicLoader(input_source=local_path, metadata={"user_id" : str(request.user.id), "file_id" : str(file_instance.id), "file_name" : file_instance.name})
+                docs = dynamic_loader.load()
+                yield f"event: file_progress\ndata: {json.dumps({'step': 3, 'total': total_steps, 'status': 'Content extracted'})}\n\n"
+            except Exception as e:
+                yield f"event: file_progress\ndata: {json.dumps({'step': 3, 'error': str(e)})}\n\n"
+                return
+
+            # Step 4: Chunking
+            try:
+                docs = dynamic_loader.splitter.split_documents(docs)
+                yield f"event: file_progress\ndata: {json.dumps({'step': 4, 'total': total_steps, 'status': 'Content chunked'})}\n\n"
+            except Exception as e:
+                yield f"event: file_progress\ndata: {json.dumps({'step': 4, 'error': str(e)})}\n\n"
+                return
+
+            # Step 5: Save Chunks
+            try:
+                file_instance.add_documents(docs)
+                serializer = FileSerializer(file_instance, context={'request': request})
+                yield f"event: file_progress\ndata: {json.dumps({'step': 5, 'total': total_steps, 'status': 'Chunks saved', 'file': serializer.data})}\n\n"
+            except Exception as e:
+                yield f"event: file_progress\ndata: {json.dumps({'step': 5, 'error': str(e)})}\n\n"
+                return
+            yield f"event: file_progress\ndata: [DONE]\n\n"
+            
+        return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LLMResponseSSEView(APIView):
@@ -107,7 +174,7 @@ class LLMResponseSSEView(APIView):
                             o = "append"
                             v = content
                             messages[1].update_self_dicussion_contexts(content)
-                            yield f"event: delta\ndata: {json.dumps({'p' : p, 'o' : o, 'v': v})}\n\n"
+                            yield f"event: file_progress delta\ndata: {json.dumps({'p' : p, 'o' : o, 'v': v})}\n\n"
 
                     elif node == 'call_model':                        
                         if self_discussion:
@@ -152,12 +219,11 @@ class LLMResponseSSEView(APIView):
                         
                 messages[1].update_status('complete', metadata=response_metadata)
                 messages[1].save()
-                yield f"event: done\ndata: [DONE]\n\n"
+                yield f"event: file_progress done\ndata: [DONE]\n\n"
             
             except Exception as e:
                 print(e)
                 # raise e
                 messages[1].update_status('error', metadata=response_metadata)
                 yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
-
         return StreamingHttpResponse(event_stream(), content_type='text/event-stream')

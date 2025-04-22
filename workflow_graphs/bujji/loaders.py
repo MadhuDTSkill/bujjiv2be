@@ -2,6 +2,7 @@ import os
 from typing import Union
 from urllib.parse import urlparse
 
+from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders.excel import UnstructuredExcelLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_community.document_loaders.tsv import UnstructuredTSVLoader
@@ -51,7 +52,8 @@ class DynamicLoader:
             '.md': lambda: UnstructuredMarkdownLoader(file_path=self.input_source),
             '.xlsx': lambda: UnstructuredExcelLoader(file_path=self.input_source),
             '.xls': lambda: UnstructuredExcelLoader(file_path=self.input_source),
-
+            '.docx' : lambda: Docx2txtLoader(file_path=self.input_source),
+            
             # Programming Languages
             '.py': lambda: self._load_from_code(Language.PYTHON),
             '.java': lambda: self._load_from_code(Language.JAVA),
@@ -69,7 +71,7 @@ class DynamicLoader:
             '.cob': lambda: self._load_from_code(Language.COBOL),
         }
 
-        return loaders.get(ext, 'txt')
+        return loaders.get(ext, lambda: TextLoader(file_path=self.input_source))
 
     def _load_from_code(self, language: Language):
         loader = GenericLoader.from_filesystem(
@@ -77,3 +79,8 @@ class DynamicLoader:
             parser=LanguageParser(language=language),
         )
         return loader
+
+
+# doc = DynamicLoader(input_source="C:\\Users\\bagam\\AppData\\Local\\Temp\\tmpv_7xnjph.docx").load()
+
+# print(doc)

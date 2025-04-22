@@ -1,16 +1,21 @@
 from rest_framework import serializers
-from .models import LLMResponse, Message, Conversation
+from .models import Message, Conversation, File
 
-class LLMResponseSerializer(serializers.ModelSerializer):
+
+class FileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = LLMResponse
-        fields = '__all__'
-        
+        model = File
+        exclude = ['temp_documents']
         
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = '__all__'
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['user'] = str(data['user'])
+        return data
         
 class ConversationSerializer(serializers.ModelSerializer):
     class Meta:

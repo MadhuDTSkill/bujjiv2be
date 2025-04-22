@@ -3,26 +3,32 @@ from django.db import models
 from auth_app.models import User
 from helper.models import UUIDPrimaryKey, TimeLine
 from .managers import MessageManager
+from langchain_core.documents import Document
 
 def str_default_dict():
    return defaultdict(str)
 
-
-class LLMResponse(UUIDPrimaryKey, TimeLine):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='llm_responses')
-    prompt = models.TextField()
-    response = models.TextField()
-    time_taken = models.FloatField(null=True, blank=True)
-    tool_responses = models.JSONField(default=list,null=True, blank=True)
-
-    class Meta:
-        ordering = ['created_at']
-        
-        
 class File(UUIDPrimaryKey, TimeLine):
-    file = models.FileField(upload_to='files/')
+    file = models.FileField(upload_to='media/files/')
     name = models.CharField(max_length=255)    
-    metadata = models.JSONField(null=True, default=str_default_dict)        
+    metadata = models.JSONField(null=True, default=str_default_dict)    
+    temp_documents = models.JSONField(default=list)   
+    
+    def add_documents(self, documents : list[Document]):
+        documents = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in documents]
+        self.temp_documents.extend(documents)
+        self.save()
+        
+    def get_documents(self, metadata : dict = {}):
+        documents = []
+        for doc in self.temp_documents:
+            doc['metadata'].update(metadata)
+            documents.append(Document(**doc))
+        return documents
+    
+    def clear_documents(self):
+        self.temp_documents = []
+        self.save()    
 
 class Conversation(UUIDPrimaryKey, TimeLine):
     title = models.CharField(max_length=255, default="New chat")
