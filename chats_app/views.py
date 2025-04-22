@@ -157,7 +157,6 @@ class LLMResponseSSEView(APIView):
             tool_index = 0
             
             
-            # yield status that create new conversation with new conversation id
             try:
                 if with_new_conversation:
                     p = 'conversation'

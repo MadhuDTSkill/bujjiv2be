@@ -12,6 +12,7 @@ from .vector_dbs import BaseVectorDB
 
 class WorkFlowState(TypedDict):
     _verbose : bool = False
+    _conversation_metadata : dict = {}
     response_mode : str = "Auto" # "Casual", "Scientific", "Story", "Kids", "Auto"
     self_discussion : bool = False # True, False
     pre_tools : list = [] # "Example Tool", "No Tool"

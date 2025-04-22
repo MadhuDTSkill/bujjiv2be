@@ -3,6 +3,7 @@ import logging
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
+from chats_app.models import Conversation
 from .memory import Memory
 from .schemas import WorkFlowState
 from .prompts import SYSTEM_PROMPT, SELF_DISCUSSION_PROMPT
@@ -25,10 +26,19 @@ def init_node(state: WorkFlowState):
     if _verbose:
         green_log("🚀 Starting workflow")
     user_query = HumanMessage(content=state['user_query'])
+    conversation_id = state['conversation_id']
+    conversation = Conversation.objects.get(id=conversation_id)
+    files = conversation.files.all()
+    uploaded_file_names = [file.name for file in files]
+    _conversation_metadata = state['_conversation_metadata']
+    _conversation_metadata.update({
+        'uploaded_file_names' : uploaded_file_names
+    })
     
     return {
         'messages' : [user_query],
         'new_messages' : [user_query],
+        '_conversation_metadata' : _conversation_metadata
     }
     
 
@@ -41,6 +51,7 @@ def load_tools(state : WorkFlowState):
     return {
         'tools' : tools
     }
+    
     
     
 def load_model(state : WorkFlowState):
@@ -64,12 +75,14 @@ def load_memory(state: WorkFlowState):
         green_log(f"🧠 Loading memory")
 
     conversation_id = state['conversation_id']
+    _conversation_metadata = state['_conversation_metadata']
+    uploaded_file_names = _conversation_metadata.get('uploaded_file_names', [])
     user_id = state['user_id']
     model = state['model']
     response_mode = state['response_mode']
     pre_tools = state['pre_tools']
     memory : Memory = Memory.get_memory(conversation_id, user_id, 7000, model, True, False, 'human')
-    system_prompt = SystemMessage(content=SYSTEM_PROMPT.format(response_mode = response_mode, pre_tools = pre_tools))
+    system_prompt = SystemMessage(content=SYSTEM_PROMPT.format(response_mode = response_mode, pre_tools = pre_tools, uploaded_file_names = ', '.join(uploaded_file_names)))
     
     if _verbose:
         green_log("🧠 Memory loaded")
@@ -87,8 +100,12 @@ def call_self_discussion(state: WorkFlowState):
         green_log("💬 Self-discussion mode activated. Thinking deeply before final response.")
         
     user_message = state['messages'][-1].content
+    _conversation_metadata = state['_conversation_metadata']
+    uploaded_file_names = _conversation_metadata.get('uploaded_file_names', [])
     model = state['model']
-    self_discussion_prompt = SELF_DISCUSSION_PROMPT.format(user_query = user_message)
+    response_mode = state['response_mode']
+    pre_tools = state['pre_tools']
+    self_discussion_prompt = SELF_DISCUSSION_PROMPT.format(user_query = user_message, response_mode = response_mode, pre_tools = pre_tools, uploaded_file_names = ', '.join(uploaded_file_names))
     messages = [user_message, HumanMessage(content=self_discussion_prompt)]    
     response : AIMessage = model.invoke(messages)
     response : ToolMessage = ToolMessage(content=response.content, tool_name='self_discussion', tool_call_id= str(uuid.uuid4()))
