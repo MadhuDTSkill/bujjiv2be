@@ -42,7 +42,7 @@ def load_tools(state : WorkFlowState):
         'tools' : tools
     }
     
-
+    
 def load_model(state : WorkFlowState):
     _verbose = state['_verbose']
     model_name = state['model_name']
@@ -130,8 +130,8 @@ def pick_tool_messages(state: WorkFlowState):
 
     tool_messages = []
     ai_flag = False
-    tool_messages = state['messages']
-    for message in reversed(message):
+    messages = state['messages']
+    for message in reversed(messages):
         if isinstance(message, ToolMessage):
             tool_messages.append(message)
         else:
