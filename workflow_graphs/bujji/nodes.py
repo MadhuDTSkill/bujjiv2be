@@ -2,6 +2,7 @@ import uuid
 import logging
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
+from langgraph.prebuilt import ToolNode
 from .memory import Memory
 from .schemas import WorkFlowState
 from .prompts import SYSTEM_PROMPT, SELF_DISCUSSION_PROMPT
@@ -118,42 +119,29 @@ def tool_node(state: WorkFlowState) -> dict:
     _verbose = state['_verbose']
     if _verbose:
         green_log("🔧 Calling tool node")
-    
-    last_message : AIMessage = state['messages'][-1]
-    tools = state['tools']
 
-    tools_by_name = {tool.name: tool for tool in tools}
+    return ToolNode(tools=state['tools'], handle_tool_errors = True)
+
+
+def pick_tool_messages(state: WorkFlowState):
+    _verbose = state['_verbose']
+    if _verbose:
+        green_log("🔧 Picking tool messages")
+
     tool_messages = []
-
-    for tool_call in last_message.tool_calls:
-        tool = tools_by_name.get(tool_call["name"])
-        if not tool:
-            continue
-
-        retries = 2
-        for attempt in range(1, retries + 1):
-            try:
-                observation = tool.invoke(input={**tool_call["args"], "state" : state}, verbose=False)  
-                tool_messages.append(ToolMessage(
-                    content=observation,
-                    name=tool.name,
-                    tool_call_id=tool_call["id"],
-                ))
-                break  
-
-            except Exception as e:
-                if attempt == retries:
-                    error_message = f"Error: Tool invocation failed after {retries}/2 attempts. Error: {str(e)}"
-                    tool_messages.append(ToolMessage(
-                        content=error_message,
-                        name=tool.name,
-                        tool_call_id=tool_call["id"],
-                    ))
-    
+    ai_flag = False
+    tool_messages = state['messages']
+    for message in reversed(message):
+        if isinstance(message, ToolMessage):
+            tool_messages.append(message)
+        else:
+            ai_flag = True
+            break
+        
     return {
-        "messages": tool_messages,
-        "new_messages" : tool_messages
+        'new_messages' : tool_messages
     }
+
 
 def save_messages_to_memory(state: WorkFlowState):
     _verbose = state['_verbose']
@@ -169,3 +157,69 @@ def save_messages_to_memory(state: WorkFlowState):
     return {
         'new_messages' : []
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# def tool_node_2(state: WorkFlowState) -> dict:
+    # _verbose = state['_verbose']
+    # if _verbose:
+    #     green_log("🔧 Calling tool node")
+    
+    # last_message : AIMessage = state['messages'][-1]
+    # tools = state['tools']
+
+    # tools_by_name = {tool.name: tool for tool in tools}
+    # tool_messages = []
+
+    # for tool_call in last_message.tool_calls:
+    #     tool = tools_by_name.get(tool_call["name"])
+    #     if not tool:
+    #         continue
+
+    #     retries = 2
+    #     for attempt in range(1, retries + 1):
+    #         try:
+    #             observation = tool.invoke(input={**tool_call["args"], "state" : state}, verbose=False)  
+    #             tool_messages.append(ToolMessage(
+    #                 content=observation,
+    #                 name=tool.name,
+    #                 tool_call_id=tool_call["id"],
+    #             ))
+    #             break  
+
+    #         except Exception as e:
+    #             if attempt == retries:
+    #                 error_message = f"Error: Tool invocation failed after {retries}/2 attempts. Error: {str(e)}"
+    #                 tool_messages.append(ToolMessage(
+    #                     content=error_message,
+    #                     name=tool.name,
+    #                     tool_call_id=tool_call["id"],
+    #                 ))
+    
+    # return {
+    #     "messages": tool_messages,
+    #     "new_messages" : tool_messages
+    # }
+    

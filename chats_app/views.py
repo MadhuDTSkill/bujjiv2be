@@ -167,7 +167,7 @@ class LLMResponseSSEView(APIView):
             
                 for message, message_data in graph.stream(s, stream_mode='messages'):
                     message : BaseMessage | AIMessage = message
-                    # message.pretty_print()
+                    message.pretty_print()
                     node = message_data.get('langgraph_node')
                     content = message.content or ""
                     response_metadata = message.response_metadata or {}
@@ -238,11 +238,11 @@ class LLMResponseSSEView(APIView):
                         
                 messages[1].update_status('complete', metadata=response_metadata)
                 messages[1].save()
-                yield f"event: file_progress done\ndata: [DONE]\n\n"
+                yield f"event: done\ndata: [DONE]\n\n"
             
             except Exception as e:
                 print(e)
-                # raise e
+                raise e
                 messages[1].update_status('error', metadata=response_metadata)
                 yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
         return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
